@@ -1,26 +1,313 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --blue: #0a84ff;
+  --coral: #ff5a5f;
+  --canary: #ffd400;
+  --ink: #0e1633;
+  --sky: #eaf4ff;
+  --white: #ffffff;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--sky);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  background: var(--blue);
+  color: var(--white);
+  padding: 4rem 1.5rem 7rem;
+}
+
+.hero-inner {
+  max-width: 60rem;
+  margin: 0 auto;
+}
+
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--canary);
+  margin: 0 0 1.25rem;
+}
+
+.headline {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.4rem, 7vw, 4.75rem);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  margin: 0;
+  max-width: 16ch;
+}
+
+.headline em {
+  font-style: normal;
+  color: var(--canary);
+}
+
+/* ---------- ticket ---------- */
+
+.wrap {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 0 1.5rem 5rem;
+}
+
+.ticket {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 15rem;
+  background: var(--white);
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  margin-top: -4.5rem;
+  box-shadow: 10px 10px 0 var(--ink);
+}
+
+.ticket-main {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ticket-stub {
+  border-left: 3px dashed var(--ink);
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  background: var(--canary);
+}
+
+/* punched notches on the tear line */
+.ticket::before,
+.ticket::after {
+  content: "";
+  position: absolute;
+  right: calc(15rem - 11px);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--sky);
+  border: 3px solid var(--ink);
+}
+
+.ticket::before {
+  top: -14px;
+}
+
+.ticket::after {
+  bottom: -14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field-label {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0.6;
+}
+
+.field input {
+  font-family: var(--font-body), sans-serif;
+  font-size: 1.05rem;
+  color: var(--ink);
+  padding: 0.7rem 0;
+  border: 0;
+  border-bottom: 2px solid var(--ink);
+  background: transparent;
+  outline: none;
+}
+
+.field input:focus {
+  border-bottom-color: var(--coral);
+}
+
+.field input::placeholder {
+  color: rgba(14, 22, 51, 0.35);
+}
+
+.go {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+  color: var(--white);
+  background: var(--ink);
+  border: 0;
+  border-radius: 3px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.go:hover:not(:disabled) {
+  background: var(--coral);
+  transform: translateY(-2px);
+}
+
+.go:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.stub-note {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+  opacity: 0.6;
+}
+
+/* ---------- status ---------- */
+
+.status {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  margin: 2rem 0 0;
+}
+
+.status-bad {
+  color: var(--coral);
+  font-weight: 700;
+}
+
+/* ---------- map ---------- */
+
+.map-frame {
+  margin-top: 2.5rem;
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 10px 10px 0 var(--coral);
+}
+
+.map-note {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  margin: 0.75rem 0 0;
+  opacity: 0.65;
+}
+
+/* ---------- days ---------- */
+
+.day {
+  margin-top: 3rem;
+}
+
+.day-tag {
+  display: inline-block;
+  font-family: var(--font-mono), monospace;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  background: var(--ink);
+  color: var(--canary);
+  padding: 0.4rem 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.stops {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stop {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: 1rem;
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  padding: 1rem 1.25rem;
+}
+
+.stop-time {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--blue);
+  padding-top: 0.15rem;
+}
+
+.stop-name {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.25rem;
+}
+
+.stop-why {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0;
+  opacity: 0.75;
+}
+
+.badge {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--coral);
+  color: var(--white);
+  padding: 0.15rem 0.4rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 640px) {
+  .ticket {
+    grid-template-columns: 1fr;
+  }
+
+  .ticket-stub {
+    border-left: 0;
+    border-top: 3px dashed var(--ink);
+  }
+
+  .ticket::before,
+  .ticket::after {
+    display: none;
+  }
+
+  .stop {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }

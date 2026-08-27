@@ -30,13 +30,12 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ city, days, interests }),
       });
-      if (!res.ok) throw new Error("Request failed");
+      if (!res.ok) throw new Error();
 
       const data: { days: Day[] } = await res.json();
       setPlan(data.days);
       setLoading(false);
 
-      // Geocode in the background so the itinerary shows immediately
       setMapping(true);
       const places = data.days.flatMap((d) => d.stops.map((s) => s.name));
 
@@ -50,7 +49,9 @@ export default function Home() {
         setPins(results);
       }
     } catch {
-      setError("Could not generate a plan. Try again.");
+      setError(
+        "Couldn't reach the planner. Check your connection and try again."
+      );
       setLoading(false);
     } finally {
       setMapping(false);
@@ -61,80 +62,111 @@ export default function Home() {
   const totalStops = plan?.flatMap((d) => d.stops).length ?? 0;
 
   return (
-    <main className="max-w-2xl mx-auto p-8">
-      <h1 className="text-2xl font-semibold mb-6">Trip Planner</h1>
-
-      <div className="flex flex-col gap-3 mb-6">
-        <input
-          className="border rounded px-3 py-2"
-          placeholder="City"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-        />
-        <input
-          type="number"
-          min={1}
-          max={7}
-          className="border rounded px-3 py-2"
-          value={days}
-          onChange={(e) => setDays(Number(e.target.value))}
-        />
-        <input
-          className="border rounded px-3 py-2"
-          placeholder="Interests (food, museums, hiking)"
-          value={interests}
-          onChange={(e) => setInterests(e.target.value)}
-        />
-        <button
-          onClick={generate}
-          disabled={loading || mapping || !city}
-          className="bg-black text-white rounded px-4 py-2 disabled:opacity-40"
-        >
-          {loading ? "Planning…" : "Generate"}
-        </button>
-      </div>
-
-      {error && <p className="text-red-600 mb-4">{error}</p>}
-
-      {mapping && (
-        <p className="text-sm text-gray-500 mb-4">
-          Locating stops… this takes a few seconds.
-        </p>
-      )}
-
-      {pins.length > 0 && (
-        <div className="mb-6">
-          <Map pins={pins} />
-          {pins.length < totalStops && (
-            <p className="text-xs text-gray-500 mt-2">
-              {totalStops - pins.length} of {totalStops} stops could not be
-              located on the map.
-            </p>
-          )}
+    <main>
+      <header className="hero">
+        <div className="hero-inner">
+          <p className="eyebrow">AI trip planner</p>
+          <h1 className="headline">
+            Pick a city. Get a day plan you can <em>actually walk.</em>
+          </h1>
         </div>
-      )}
+      </header>
 
-      {plan?.map((d) => (
-        <section key={d.day} className="mb-6">
-          <h2 className="font-semibold mb-2">Day {d.day}</h2>
-          <ul className="flex flex-col gap-3">
-            {d.stops.map((s, i) => (
-              <li key={i} className="border rounded p-3">
-                <div className="text-sm text-gray-500">{s.time}</div>
-                <div className="font-medium">
-                  {s.name}
-                  {pins.length > 0 && !located.has(`${s.name}, ${city}`) && (
-                    <span className="ml-2 text-xs font-normal text-amber-600">
-                      not found
-                    </span>
-                  )}
-                </div>
-                <div className="text-sm">{s.why}</div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      <div className="wrap">
+        <div className="ticket">
+          <div className="ticket-main">
+            <div className="field">
+              <label className="field-label" htmlFor="city">
+                Destination
+              </label>
+              <input
+                id="city"
+                placeholder="Kyoto"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              />
+            </div>
+
+            <div className="field">
+              <label className="field-label" htmlFor="days">
+                Days
+              </label>
+              <input
+                id="days"
+                type="number"
+                min={1}
+                max={7}
+                value={days}
+                onChange={(e) => setDays(Number(e.target.value))}
+              />
+            </div>
+
+            <div className="field">
+              <label className="field-label" htmlFor="interests">
+                What you're into
+              </label>
+              <input
+                id="interests"
+                placeholder="Food, temples, long walks"
+                value={interests}
+                onChange={(e) => setInterests(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="ticket-stub">
+            <button
+              className="go"
+              onClick={generate}
+              disabled={loading || mapping || !city}
+            >
+              {loading ? "Planning…" : "Plan the trip"}
+            </button>
+            <p className="stub-note">Tear here</p>
+          </div>
+        </div>
+
+        {error && <p className="status status-bad">{error}</p>}
+
+        {mapping && <p className="status">Locating stops on the map…</p>}
+
+        {pins.length > 0 && (
+          <>
+            <div className="map-frame">
+              <Map pins={pins} />
+            </div>
+            {pins.length < totalStops && (
+              <p className="map-note">
+                {totalStops - pins.length} of {totalStops} stops couldn't be
+                placed on the map.
+              </p>
+            )}
+          </>
+        )}
+
+        {plan?.map((d) => (
+          <section className="day" key={d.day}>
+            <div className="day-tag">DAY {String(d.day).padStart(2, "0")}</div>
+            <ul className="stops">
+              {d.stops.map((s, i) => (
+                <li className="stop" key={i}>
+                  <div className="stop-time">{s.time}</div>
+                  <div>
+                    <h3 className="stop-name">
+                      {s.name}
+                      {pins.length > 0 &&
+                        !located.has(`${s.name}, ${city}`) && (
+                          <span className="badge">not on map</span>
+                        )}
+                    </h3>
+                    <p className="stop-why">{s.why}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
     </main>
   );
 }
