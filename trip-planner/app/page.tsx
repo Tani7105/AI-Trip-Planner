@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
-import Map from "./Map";
+import { useMemo, useState } from "react";
+import Map, { dayColor, type Pin } from "./Map";
 
 type Stop = { name: string; time: string; why: string };
-type Day = { day: number; stops: Stop[] };
-type Pin = { name: string; lat: number; lng: number };
+type Day = { day: number; area: string; stops: Stop[] };
+type GeoHit = { name: string; lat: number; lng: number };
 
 /* ---------- export helpers ---------- */
 
@@ -120,9 +120,13 @@ export default function Home() {
   const [days, setDays] = useState(3);
   const [interests, setInterests] = useState("");
   const [startDate, setStartDate] = useState("");
+
   const [plan, setPlan] = useState<Day[] | null>(null);
   const [tripCity, setTripCity] = useState("");
   const [pins, setPins] = useState<Pin[]>([]);
+  const [hiddenDays, setHiddenDays] = useState<Set<number>>(new Set());
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [mapping, setMapping] = useState(false);
   const [error, setError] = useState("");
@@ -132,6 +136,8 @@ export default function Home() {
     setError("");
     setPlan(null);
     setPins([]);
+    setHiddenDays(new Set());
+    setFocusKey(null);
 
     try {
       const res = await fetch("/api/plan", {
@@ -154,9 +160,28 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ city, places }),
       });
+
       if (geo.ok) {
-        const { results }: { results: Pin[] } = await geo.json();
-        setPins(results);
+        const { results }: { results: GeoHit[] } = await geo.json();
+        const byName = new globalThis.Map(results.map((r) => [r.name, r]));
+
+        const built: Pin[] = [];
+        for (const d of data.days) {
+          let order = 0;
+          d.stops.forEach((s, i) => {
+            const hit = byName.get(`${s.name}, ${city}`);
+            if (!hit) return;
+            built.push({
+              key: `${d.day}-${i}`,
+              name: s.name,
+              lat: hit.lat,
+              lng: hit.lng,
+              day: d.day,
+              order: order++,
+            });
+          });
+        }
+        setPins(built);
       }
     } catch {
       setError(
@@ -168,7 +193,21 @@ export default function Home() {
     }
   }
 
-  const located = new Set(pins.map((p) => p.name));
+  const visiblePins = useMemo(
+    () => pins.filter((p) => !hiddenDays.has(p.day)),
+    [pins, hiddenDays]
+  );
+
+  function toggleDay(day: number) {
+    setHiddenDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  }
+
+  const mappedKeys = new Set(pins.map((p) => p.key));
   const totalStops = plan?.flatMap((d) => d.stops).length ?? 0;
 
   return (
@@ -253,11 +292,35 @@ export default function Home() {
         {error && <p className="status status-bad">{error}</p>}
         {mapping && <p className="status">Locating stops on the map…</p>}
 
-        {pins.length > 0 && (
+        {pins.length > 0 && plan && (
           <>
-            <div className="map-frame">
-              <Map pins={pins} />
+            <div className="day-toggles">
+              {plan.map((d) => {
+                const on = !hiddenDays.has(d.day);
+                return (
+                  <button
+                    key={d.day}
+                    className={`day-toggle ${on ? "is-on" : ""}`}
+                    onClick={() => toggleDay(d.day)}
+                    style={
+                      on
+                        ? {
+                            background: dayColor(d.day),
+                            borderColor: dayColor(d.day),
+                          }
+                        : undefined
+                    }
+                  >
+                    Day {d.day}
+                  </button>
+                );
+              })}
             </div>
+
+            <div className="map-frame">
+              <Map pins={visiblePins} focusKey={focusKey} />
+            </div>
+
             {pins.length < totalStops && (
               <p className="map-note">
                 {totalStops - pins.length} of {totalStops} stops couldn&apos;t
@@ -291,33 +354,56 @@ export default function Home() {
 
         {plan?.map((d) => (
           <section className="day" key={d.day}>
-            <div className="day-tag">DAY {String(d.day).padStart(2, "0")}</div>
+            <div className="day-tag" style={{ background: dayColor(d.day) }}>
+              DAY {String(d.day).padStart(2, "0")}
+            </div>
+            <p className="day-area">{d.area}</p>
             <ul className="stops">
-              {d.stops.map((s, i) => (
-                <li className="stop" key={i}>
-                  <div className="stop-time">{s.time}</div>
-                  <div>
-                    <h3 className="stop-name">
-                      {s.name}
-                      {pins.length > 0 &&
-                        !located.has(`${s.name}, ${tripCity}`) && (
+              {d.stops.map((s, i) => {
+                const key = `${d.day}-${i}`;
+                const onMap = mappedKeys.has(key);
+                const pin = pins.find((p) => p.key === key);
+
+                return (
+                  <li
+                    className={`stop ${onMap ? "is-clickable" : ""} ${
+                      focusKey === key ? "is-focused" : ""
+                    }`}
+                    key={key}
+                    onClick={() => onMap && setFocusKey(key)}
+                  >
+                    <div className="stop-time">{s.time}</div>
+                    <div>
+                      <h3 className="stop-name">
+                        {pin && (
+                          <span
+                            className="stop-num"
+                            style={{ background: dayColor(d.day) }}
+                          >
+                            {pin.order + 1}
+                          </span>
+                        )}
+                        {s.name}
+                        {pins.length > 0 && !onMap && (
                           <span className="badge">not on map</span>
                         )}
-                    </h3>
-                    <p className="stop-why">{s.why}</p>
-                    {startDate && (
-                      <a
-                        className="cal-link"
-                        href={calendarUrl(s, d.day, startDate, tripCity)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Add to calendar
-                      </a>
-                    )}
-                  </div>
-                </li>
-              ))}
+                      </h3>
+                      <p className="stop-why">{s.why}</p>
+                      {startDate && (
+                        <a
+                          className="cal-link"
+                          href={calendarUrl(s, d.day, startDate, tripCity)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Add to calendar
+                        </a>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ))}

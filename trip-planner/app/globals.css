@@ -373,3 +373,75 @@ body {
     grid-template-columns: 1fr;
   }
 }
+.day-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 2.5rem;
+}
+
+.day-toggle {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  padding: 0.6rem 1.1rem;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.12s ease;
+}
+
+.day-toggle.is-on {
+  color: var(--white);
+  opacity: 1;
+}
+
+.day-toggle:hover {
+  opacity: 1;
+}
+
+.stop.is-clickable {
+  cursor: pointer;
+}
+
+.stop.is-clickable:hover {
+  background: #fffdf2;
+}
+
+.stop.is-focused {
+  box-shadow: 6px 6px 0 var(--ink);
+}
+
+.stop-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  color: var(--white);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-right: 0.6rem;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.day-tag {
+  color: var(--white);
+}
+.day-area {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin: 0 0 1rem;
+}
