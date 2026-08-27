@@ -9,9 +9,13 @@ type GeoHit = { name: string; lat: number; lng: number };
 /* ---------- export helpers ---------- */
 
 function toText(city: string, plan: Day[]) {
-  const lines = [`${city.toUpperCase()} — ${plan.length} DAY TRIP`, ""];
+  const lines = [
+    "POSTCARD",
+    `${city.toUpperCase()} — ${plan.length} DAY TRIP`,
+    "",
+  ];
   for (const d of plan) {
-    lines.push(`DAY ${d.day}`);
+    lines.push(`DAY ${d.day} — ${d.area.toUpperCase()}`);
     for (const s of d.stops) {
       lines.push(`  ${s.time}  ${s.name}`);
       lines.push(`           ${s.why}`);
@@ -39,7 +43,10 @@ async function downloadPdf(city: string, plan: Day[]) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF();
 
-  let y = 20;
+  doc.setFontSize(9);
+  doc.text("POSTCARD", 15, 12);
+
+  let y = 24;
   doc.setFontSize(20);
   doc.text(`${city} — ${plan.length} day trip`, 15, y);
   y += 12;
@@ -50,7 +57,7 @@ async function downloadPdf(city: string, plan: Day[]) {
       y = 20;
     }
     doc.setFontSize(14);
-    doc.text(`Day ${d.day}`, 15, y);
+    doc.text(`Day ${d.day} — ${d.area}`, 15, y);
     y += 8;
 
     doc.setFontSize(10);
@@ -214,7 +221,10 @@ export default function Home() {
     <main>
       <header className="hero">
         <div className="hero-inner">
-          <p className="eyebrow">AI trip planner</p>
+          <div className="brand">
+            <span className="brand-mark">Postcard</span>
+            <span className="brand-stamp">Trip planner</span>
+          </div>
           <h1 className="headline">
             Pick a city. Get a day plan you can <em>actually walk.</em>
           </h1>

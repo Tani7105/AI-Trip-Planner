@@ -23,8 +23,9 @@ const mono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Trip Planner",
-  description: "Day-by-day plans for any city.",
+  title: "Postcard — trip planner",
+  description:
+    "Day-by-day plans for any city, clustered so you're not crossing town twice.",
 };
 
 export default function RootLayout({
