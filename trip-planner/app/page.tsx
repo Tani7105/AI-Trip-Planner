@@ -1,18 +1,127 @@
 "use client";
 import { useState } from "react";
-import dynamic from "next/dynamic";
-
-const Map = dynamic(() => import("./Map"), { ssr: false });
+import Map from "./Map";
 
 type Stop = { name: string; time: string; why: string };
 type Day = { day: number; stops: Stop[] };
 type Pin = { name: string; lat: number; lng: number };
 
+/* ---------- export helpers ---------- */
+
+function toText(city: string, plan: Day[]) {
+  const lines = [`${city.toUpperCase()} — ${plan.length} DAY TRIP`, ""];
+  for (const d of plan) {
+    lines.push(`DAY ${d.day}`);
+    for (const s of d.stops) {
+      lines.push(`  ${s.time}  ${s.name}`);
+      lines.push(`           ${s.why}`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+function slug(city: string) {
+  return city.toLowerCase().replace(/\s+/g, "-");
+}
+
+function downloadText(city: string, plan: Day[]) {
+  const blob = new Blob([toText(city, plan)], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${slug(city)}-trip.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadPdf(city: string, plan: Day[]) {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF();
+
+  let y = 20;
+  doc.setFontSize(20);
+  doc.text(`${city} — ${plan.length} day trip`, 15, y);
+  y += 12;
+
+  for (const d of plan) {
+    if (y > 260) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.setFontSize(14);
+    doc.text(`Day ${d.day}`, 15, y);
+    y += 8;
+
+    doc.setFontSize(10);
+    for (const s of d.stops) {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(`${s.time}  ${s.name}`, 20, y);
+      y += 5;
+      for (const line of doc.splitTextToSize(s.why, 165)) {
+        if (y > 275) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(line, 25, y);
+        y += 5;
+      }
+      y += 3;
+    }
+    y += 5;
+  }
+
+  doc.save(`${slug(city)}-trip.pdf`);
+}
+
+function calendarUrl(
+  stop: Stop,
+  dayNumber: number,
+  startDate: string,
+  city: string
+) {
+  const date = new Date(startDate);
+  date.setDate(date.getDate() + dayNumber - 1);
+
+  const m = stop.time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+  let hours = m ? Number(m[1]) : 9;
+  const mins = m ? Number(m[2]) : 0;
+  const period = m?.[3]?.toUpperCase();
+  if (period === "PM" && hours !== 12) hours += 12;
+  if (period === "AM" && hours === 12) hours = 0;
+
+  date.setHours(hours, mins, 0, 0);
+  const end = new Date(date.getTime() + 90 * 60 * 1000);
+
+  const fmt = (d: Date) =>
+    d
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}/, "");
+
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: stop.name,
+    dates: `${fmt(date)}/${fmt(end)}`,
+    details: stop.why,
+    location: `${stop.name}, ${city}`,
+  });
+
+  return `https://calendar.google.com/calendar/render?${params}`;
+}
+
+/* ---------- page ---------- */
+
 export default function Home() {
   const [city, setCity] = useState("");
   const [days, setDays] = useState(3);
   const [interests, setInterests] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [plan, setPlan] = useState<Day[] | null>(null);
+  const [tripCity, setTripCity] = useState("");
   const [pins, setPins] = useState<Pin[]>([]);
   const [loading, setLoading] = useState(false);
   const [mapping, setMapping] = useState(false);
@@ -34,6 +143,7 @@ export default function Home() {
 
       const data: { days: Day[] } = await res.json();
       setPlan(data.days);
+      setTripCity(city);
       setLoading(false);
 
       setMapping(true);
@@ -87,23 +197,37 @@ export default function Home() {
               />
             </div>
 
-            <div className="field">
-              <label className="field-label" htmlFor="days">
-                Days
-              </label>
-              <input
-                id="days"
-                type="number"
-                min={1}
-                max={7}
-                value={days}
-                onChange={(e) => setDays(Number(e.target.value))}
-              />
+            <div className="field-row">
+              <div className="field">
+                <label className="field-label" htmlFor="days">
+                  Days
+                </label>
+                <input
+                  id="days"
+                  type="number"
+                  min={1}
+                  max={7}
+                  value={days}
+                  onChange={(e) => setDays(Number(e.target.value))}
+                />
+              </div>
+
+              <div className="field">
+                <label className="field-label" htmlFor="start">
+                  Start date (optional)
+                </label>
+                <input
+                  id="start"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="field">
               <label className="field-label" htmlFor="interests">
-                What you're into
+                What you&apos;re into
               </label>
               <input
                 id="interests"
@@ -127,7 +251,6 @@ export default function Home() {
         </div>
 
         {error && <p className="status status-bad">{error}</p>}
-
         {mapping && <p className="status">Locating stops on the map…</p>}
 
         {pins.length > 0 && (
@@ -137,11 +260,33 @@ export default function Home() {
             </div>
             {pins.length < totalStops && (
               <p className="map-note">
-                {totalStops - pins.length} of {totalStops} stops couldn't be
-                placed on the map.
+                {totalStops - pins.length} of {totalStops} stops couldn&apos;t
+                be placed on the map.
               </p>
             )}
           </>
+        )}
+
+        {plan && (
+          <div className="exports">
+            <button
+              className="export-btn"
+              onClick={() => downloadPdf(tripCity, plan)}
+            >
+              Download PDF
+            </button>
+            <button
+              className="export-btn"
+              onClick={() => downloadText(tripCity, plan)}
+            >
+              Download text
+            </button>
+            {!startDate && (
+              <p className="export-hint">
+                Add a start date to get calendar links on each stop.
+              </p>
+            )}
+          </div>
         )}
 
         {plan?.map((d) => (
@@ -155,11 +300,21 @@ export default function Home() {
                     <h3 className="stop-name">
                       {s.name}
                       {pins.length > 0 &&
-                        !located.has(`${s.name}, ${city}`) && (
+                        !located.has(`${s.name}, ${tripCity}`) && (
                           <span className="badge">not on map</span>
                         )}
                     </h3>
                     <p className="stop-why">{s.why}</p>
+                    {startDate && (
+                      <a
+                        className="cal-link"
+                        href={calendarUrl(s, d.day, startDate, tripCity)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Add to calendar
+                      </a>
+                    )}
                   </div>
                 </li>
               ))}
