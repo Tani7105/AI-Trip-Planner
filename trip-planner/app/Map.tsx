@@ -1,35 +1,70 @@
 "use client";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
-const icon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+import {
+  APIProvider,
+  Map as GMap,
+  AdvancedMarker,
+  Pin as GPin,
+  InfoWindow,
+} from "@vis.gl/react-google-maps";
+import { useMemo, useState } from "react";
 
 type Pin = { name: string; lat: number; lng: number };
 
 export default function Map({ pins }: { pins: Pin[] }) {
+  const [active, setActive] = useState<number | null>(null);
+  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
+
+  const center = useMemo(() => {
+    if (!pins.length) return { lat: 0, lng: 0 };
+    const lat = pins.reduce((a, p) => a + p.lat, 0) / pins.length;
+    const lng = pins.reduce((a, p) => a + p.lng, 0) / pins.length;
+    return { lat, lng };
+  }, [pins]);
+
   if (!pins.length) return null;
 
+  if (!key) {
+    return (
+      <div style={{ padding: "1rem" }}>
+        Map unavailable — browser key not configured.
+      </div>
+    );
+  }
+
   return (
-    <MapContainer
-      center={[pins[0].lat, pins[0].lng]}
-      zoom={13}
-      style={{ height: 400, width: "100%" }}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution="&copy; OpenStreetMap contributors"
-      />
-      {pins.map((p, i) => (
-        <Marker key={i} position={[p.lat, p.lng]} icon={icon}>
-          <Popup>{p.name}</Popup>
-        </Marker>
-      ))}
-    </MapContainer>
+    <APIProvider apiKey={key}>
+      <GMap
+        style={{ height: 400, width: "100%" }}
+        defaultCenter={center}
+        defaultZoom={12}
+        mapId="TRIP_PLANNER_MAP"
+        gestureHandling="greedy"
+      >
+        {pins.map((p, i) => (
+          <AdvancedMarker
+            key={i}
+            position={{ lat: p.lat, lng: p.lng }}
+            onClick={() => setActive(i)}
+          >
+            <GPin
+              background="#0A84FF"
+              borderColor="#0E1633"
+              glyphColor="#FFFFFF"
+            />
+          </AdvancedMarker>
+        ))}
+
+        {active !== null && (
+          <InfoWindow
+            position={{ lat: pins[active].lat, lng: pins[active].lng }}
+            onCloseClick={() => setActive(null)}
+          >
+            <div style={{ color: "#0E1633", fontWeight: 600 }}>
+              {pins[active].name}
+            </div>
+          </InfoWindow>
+        )}
+      </GMap>
+    </APIProvider>
   );
 }
