@@ -1,11 +1,12 @@
 "use client";
 import { useMemo, useState } from "react";
 import Map, { dayColor, type Pin } from "./Map";
+import HeroPhoto from "./HeroPhoto";
 
 type Stop = { name: string; time: string; why: string };
 type Day = { day: number; area: string; stops: Stop[] };
 type GeoHit = { name: string; lat: number; lng: number };
-
+type Shot = { name: string; url: string; attribution: string };
 /* ---------- export helpers ---------- */
 
 function toText(city: string, plan: Day[]) {
@@ -220,10 +221,10 @@ export default function Home() {
   return (
     <main>
       <header className="hero">
+        <HeroPhoto />
         <div className="hero-inner">
           <div className="brand">
             <span className="brand-mark">Postcard</span>
-            <span className="brand-stamp">Trip planner</span>
           </div>
           <h1 className="headline">
             Pick a city. Get a day plan you can <em>actually walk.</em>
@@ -417,6 +418,38 @@ export default function Home() {
             </ul>
           </section>
         ))}
+
+        <footer className="postmark">
+          <svg
+            viewBox="0 0 420 120"
+            className="postmark-svg"
+            aria-hidden="true"
+          >
+            <circle cx="60" cy="60" r="42" className="pm-ring" />
+            <circle cx="60" cy="60" r="34" className="pm-ring" />
+            <text x="60" y="52" className="pm-top">
+              POSTCARD
+            </text>
+            <text x="60" y="68" className="pm-mid">
+              ★
+            </text>
+            <text x="60" y="84" className="pm-bot">
+              PAR AVION
+            </text>
+            <path
+              d="M118 38 q22 -9 44 0 t44 0 t44 0 t44 0 t44 0 t44 0"
+              className="pm-wave"
+            />
+            <path
+              d="M118 56 q22 -9 44 0 t44 0 t44 0 t44 0 t44 0 t44 0"
+              className="pm-wave"
+            />
+            <path
+              d="M118 74 q22 -9 44 0 t44 0 t44 0 t44 0 t44 0 t44 0"
+              className="pm-wave"
+            />
+          </svg>
+        </footer>
       </div>
     </main>
   );
