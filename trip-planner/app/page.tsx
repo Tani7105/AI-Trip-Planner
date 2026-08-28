@@ -7,6 +7,7 @@ type Stop = { name: string; time: string; why: string };
 type Day = { day: number; area: string; stops: Stop[] };
 type GeoHit = { name: string; lat: number; lng: number };
 type Shot = { name: string; url: string; attribution: string };
+
 /* ---------- export helpers ---------- */
 
 function toText(city: string, plan: Day[]) {
@@ -132,6 +133,9 @@ export default function Home() {
   const [plan, setPlan] = useState<Day[] | null>(null);
   const [tripCity, setTripCity] = useState("");
   const [pins, setPins] = useState<Pin[]>([]);
+  const [shots, setShots] = useState<globalThis.Map<string, Shot>>(
+    new globalThis.Map()
+  );
   const [hiddenDays, setHiddenDays] = useState<Set<number>>(new Set());
   const [focusKey, setFocusKey] = useState<string | null>(null);
 
@@ -144,6 +148,7 @@ export default function Home() {
     setError("");
     setPlan(null);
     setPins([]);
+    setShots(new globalThis.Map());
     setHiddenDays(new Set());
     setFocusKey(null);
 
@@ -191,12 +196,24 @@ export default function Home() {
         }
         setPins(built);
       }
+
+      setMapping(false);
+
+      const photoRes = await fetch("/api/stop-photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ city, places }),
+      });
+
+      if (photoRes.ok) {
+        const { results }: { results: Shot[] } = await photoRes.json();
+        setShots(new globalThis.Map(results.map((s) => [s.name, s])));
+      }
     } catch {
       setError(
         "Couldn't reach the planner. Check your connection and try again."
       );
       setLoading(false);
-    } finally {
       setMapping(false);
     }
   }
@@ -225,6 +242,7 @@ export default function Home() {
         <div className="hero-inner">
           <div className="brand">
             <span className="brand-mark">Postcard</span>
+            <span className="brand-stamp">Trip planner</span>
           </div>
           <h1 className="headline">
             Pick a city. Get a day plan you can <em>actually walk.</em>
@@ -374,16 +392,30 @@ export default function Home() {
                 const key = `${d.day}-${i}`;
                 const onMap = mappedKeys.has(key);
                 const pin = pins.find((p) => p.key === key);
+                const shot = shots.get(`${s.name}, ${tripCity}`);
 
                 return (
                   <li
-                    className={`stop ${onMap ? "is-clickable" : ""} ${
-                      focusKey === key ? "is-focused" : ""
-                    }`}
+                    className={`stop ${shot ? "has-photo" : ""} ${
+                      onMap ? "is-clickable" : ""
+                    } ${focusKey === key ? "is-focused" : ""}`}
                     key={key}
                     onClick={() => onMap && setFocusKey(key)}
                   >
                     <div className="stop-time">{s.time}</div>
+
+                    {shot && (
+                      <div className="stop-photo">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={shot.url} alt={s.name} loading="lazy" />
+                        {shot.attribution && (
+                          <span className="photo-credit">
+                            {shot.attribution}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <div>
                       <h3 className="stop-name">
                         {pin && (

@@ -460,7 +460,39 @@ body {
   color: var(--blue);
   padding-top: 0.15rem;
 }
+.stop.has-photo {
+  grid-template-columns: 6rem 8rem 1fr;
+}
 
+.stop-photo {
+  position: relative;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+
+.stop-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-credit {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.5rem;
+  color: var(--white);
+  background: rgba(14, 22, 51, 0.7);
+  padding: 0.15rem 0.3rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .stop-num {
   display: inline-flex;
   align-items: center;
@@ -595,9 +627,14 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .stop {
+  .stop,
+  .stop.has-photo {
     grid-template-columns: 1fr;
-    gap: 0.35rem;
+    gap: 0.5rem;
+  }
+
+  .stop-photo {
+    aspect-ratio: 16 / 9;
   }
 }
 
